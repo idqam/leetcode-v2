@@ -1,61 +1,150 @@
 # LeetCode V2
 
-A Next.js app for tracking LeetCode problems, reviews, patterns, and progress.
+A Next.js app for tracking LeetCode problems, solves, reviews, and patterns. Uses a PostgreSQL database (via Drizzle ORM) for all persistence.
 
-## Getting Started
+---
 
-Install dependencies:
+## Tech Stack
+
+- **Next.js 14** (App Router)
+- **PostgreSQL 16** — all data stored here
+- **Drizzle ORM** — schema, migrations, and queries
+- **Docker Compose** — runs Postgres locally
+
+---
+
+## Persistence
+
+All data is stored in a PostgreSQL database. The schema (defined in `src/db/schema.ts`) has four tables:
+
+| Table | Purpose |
+|---|---|
+| `problems` | Problem metadata (title, difficulty, topics, solution, explanation) |
+| `patterns` | Coding patterns with code templates per language |
+| `pattern_problems` | Many-to-many join between patterns and problems |
+| `solves` | One row per problem when first marked solved |
+| `reviews` | One row per completed SM-2 spaced-repetition review session |
+
+The app connects via the `DATABASE_URL` environment variable (set in `.env.local`). Drizzle manages migrations — migration files live in `./drizzle/`.
+
+### Local persistence
+
+When running locally with Docker Compose, Postgres data is stored in a named Docker volume (`pgdata`). This volume persists across container restarts and `docker compose down` — data is only lost if you explicitly remove the volume:
+
+```bash
+# removes the volume and all data
+docker compose down -v
+```
+
+---
+
+## Local Setup
+
+### Prerequisites
+
+- [Node.js](https://nodejs.org/) 18+
+- [Docker](https://www.docker.com/) (for Postgres)
+
+### 1. Start the database
+
+```bash
+docker compose up -d
+```
+
+This starts a Postgres 16 container on port `5432` with:
+- **User:** `tracker`
+- **Password:** `tracker`
+- **Database:** `leetcode`
+
+### 2. Configure environment
+
+Create `.env.local` in the project root:
+
+```env
+DATABASE_URL=postgresql://tracker:tracker@localhost:5432/leetcode
+```
+
+### 3. Run migrations
+
+Apply the database schema:
+
+```bash
+npx drizzle-kit migrate
+```
+
+### 4. Install dependencies and start
 
 ```bash
 npm install
-```
-
-Run the development server:
-
-```bash
 npm run dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) in your browser to use the app.
+Open [http://localhost:3000](http://localhost:3000).
 
-## How to Use
+---
 
-1. Start the app locally with `npm run dev`.
-2. Open `http://localhost:3000`.
-3. Use the tracker dashboard to browse problems, mark solves, and review your progress.
-4. Explore the `Patterns` page to view categorized problem patterns.
-5. Use the `Dashboard` page for charts and summaries of your LeetCode activity.
+## Docker Compose Reference
+
+```yaml
+# docker-compose.yml
+services:
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_USER: tracker
+      POSTGRES_PASSWORD: tracker
+      POSTGRES_DB: leetcode
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+volumes:
+  pgdata:
+```
+
+### Useful commands
+
+```bash
+# start in background
+docker compose up -d
+
+# stop (data is preserved in the volume)
+docker compose down
+
+# stop and delete all data
+docker compose down -v
+
+# view logs
+docker compose logs -f db
+
+# connect to Postgres directly
+docker compose exec db psql -U tracker -d leetcode
+```
+
+---
+
+## Database Migrations
+
+Migrations are managed with Drizzle Kit. Migration files are in `./drizzle/`.
+
+```bash
+# generate a new migration after editing src/db/schema.ts
+npx drizzle-kit generate
+
+# apply pending migrations
+npx drizzle-kit migrate
+
+# open Drizzle Studio (browser-based DB viewer)
+npx drizzle-kit studio
+```
+
+---
 
 ## Available Scripts
 
-- `npm run dev` - Start the app in development mode.
-- `npm run build` - Build the production application.
-- `npm run start` - Run the built production app.
-- `npm run lint` - Run ESLint checks.
-
-## Build and Preview
-
-Build the app for production:
-
-```bash
-npm run build
-```
-
-Start the production server:
-
-```bash
-npm run start
-```
-
-## Learn More
-
-This project is built with [Next.js](https://nextjs.org).
-
-- [Next.js Documentation](https://nextjs.org/docs)
-- [Create Next App](https://nextjs.org/docs/app/api-reference/cli/create-next-app)
-
-## Deploy on Vercel
-
-The easiest way to deploy this app is with [Vercel](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme).
-
-For more deployment details, see the [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying).
+| Command | Description |
+|---|---|
+| `npm run dev` | Start dev server (http://localhost:3000) |
+| `npm run build` | Build for production |
+| `npm run start` | Run production build |
+| `npm run lint` | Run ESLint |
