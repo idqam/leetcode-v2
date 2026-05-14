@@ -69,8 +69,10 @@ DATABASE_URL=postgresql://tracker:tracker@localhost:5432/leetcode
 Apply the database schema:
 
 ```bash
-npx drizzle-kit migrate
+npm run db:migrate
 ```
+
+(This loads `.env.local` and applies pending migrations.)
 
 ### 4. Install dependencies and start
 
@@ -129,13 +131,13 @@ Migrations are managed with Drizzle Kit. Migration files are in `./drizzle/`.
 
 ```bash
 # generate a new migration after editing src/db/schema.ts
-npx drizzle-kit generate
+npm run db:generate
 
 # apply pending migrations
-npx drizzle-kit migrate
+npm run db:migrate
 
 # open Drizzle Studio (browser-based DB viewer)
-npx drizzle-kit studio
+npm run db:studio
 ```
 
 ---
@@ -148,3 +150,6 @@ npx drizzle-kit studio
 | `npm run build` | Build for production |
 | `npm run start` | Run production build |
 | `npm run lint` | Run ESLint |
+| `npm run db:migrate` | Apply pending database migrations |
+| `npm run db:generate` | Generate a new migration after schema changes |
+| `npm run db:studio` | Open Drizzle Studio (browser-based DB viewer) |
