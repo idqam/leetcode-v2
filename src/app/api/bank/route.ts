@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+export const dynamic = 'force-dynamic';
 import { db } from "@/db";
 import { problems, solves, reviews } from "@/db/schema";
 import { today } from "@/lib/types";
