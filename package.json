@@ -7,9 +7,9 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:migrate": "DATABASE_URL=\"postgresql://tracker:tracker@localhost:5432/leetcode\" drizzle-kit migrate",
-    "db:generate": "DATABASE_URL=\"postgresql://tracker:tracker@localhost:5432/leetcode\" drizzle-kit generate",
-    "db:studio": "DATABASE_URL=\"postgresql://tracker:tracker@localhost:5432/leetcode\" drizzle-kit studio"
+    "db:migrate": "drizzle-kit migrate",
+    "db:generate": "drizzle-kit generate",
+    "db:studio": "drizzle-kit studio"
   },
   "dependencies": {
     "@base-ui/react": "^1.4.1",
