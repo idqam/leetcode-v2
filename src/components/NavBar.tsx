@@ -20,10 +20,18 @@ export function NavBar() {
   if (HIDE_NAV_ON.includes(pathname)) return null;
 
   async function handleSignOut() {
-    const supabase = createClient();
-    await supabase.auth.signOut();
-    router.push("/landing");
-    router.refresh();
+    try {
+      const supabase = createClient();
+      const { error } = await supabase.auth.signOut();
+      if (error) {
+        console.error("Sign out error:", error);
+        return;
+      }
+      router.push("/landing");
+      router.refresh();
+    } catch (err) {
+      console.error("Sign out failed:", err);
+    }
   }
 
   return (

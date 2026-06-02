@@ -21,6 +21,12 @@ interface BankData {
   upcoming: Record<string, BankEntry[]>;
 }
 
+function sliceUpcoming(upcoming: Record<string, BankEntry[]>, fromDay: number, toDay: number) {
+  return Object.entries(upcoming)
+    .sort(([a], [b]) => a.localeCompare(b))
+    .slice(fromDay - 1, toDay);
+}
+
 export default function BankPage() {
   const [bank, setBank] = useState<BankData | null>(null);
   const [fullProblem, setFullProblem] = useState<null | unknown>(null);
@@ -81,35 +87,28 @@ export default function BankPage() {
     <div className="flex items-center justify-center h-64 text-[#6B7F8E] text-sm">Loading…</div>
   );
 
-  const upcomingDays = Object.entries(bank.upcoming).sort(([a], [b]) => a.localeCompare(b));
-  const totalDue = bank.overdue.length + bank.dueToday.length;
-  const allClear = totalDue === 0;
+  const allClear = bank.overdue.length === 0 && bank.dueToday.length === 0;
+
+  const next7  = sliceUpcoming(bank.upcoming, 1, 7);
+  const next15 = sliceUpcoming(bank.upcoming, 8, 15);
+  const next30 = sliceUpcoming(bank.upcoming, 16, 30);
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
-      {/* Session header */}
-      <div>
-        <div className="flex items-baseline justify-between mb-1">
-          <h1 className="text-xl font-bold text-[#1C2B3A] dark:text-[#E8EDF2]">Review Queue</h1>
-          {completedToday > 0 && (
-            <span className="text-xs text-[#6B7F8E]">{completedToday} done this session</span>
-          )}
-        </div>
 
+      {/* Centered header */}
+      <div className="text-center">
+        <h1 className="text-xl font-bold text-[#1C2B3A] dark:text-[#E8EDF2]">Review Queue</h1>
+        {completedToday > 0 && (
+          <p className="text-xs text-[#6B7F8E] mt-1">{completedToday} done this session</p>
+        )}
         {!allClear && (
-          <div className="flex gap-3 mt-3">
+          <div className="flex justify-center gap-3 mt-3">
             {bank.overdue.length > 0 && (
               <StatPill label="Overdue" count={bank.overdue.length} variant="red" />
             )}
             {bank.dueToday.length > 0 && (
               <StatPill label="Due Today" count={bank.dueToday.length} variant="amber" />
-            )}
-            {upcomingDays.length > 0 && (
-              <StatPill
-                label="Upcoming"
-                count={upcomingDays.reduce((a, [, v]) => a + v.length, 0)}
-                variant="blue"
-              />
             )}
           </div>
         )}
@@ -130,13 +129,9 @@ export default function BankPage() {
           <SectionLabel text="Overdue" />
           <div className="space-y-2">
             {bank.overdue.map((entry) => (
-              <BankCard
-                key={entry.problem.id}
-                entry={entry}
-                variant="overdue"
+              <BankCard key={entry.problem.id} entry={entry} variant="overdue"
                 onOpen={() => openModal(entry.problem.id)}
-                onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })}
-              />
+                onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })} />
             ))}
           </div>
         </section>
@@ -148,43 +143,18 @@ export default function BankPage() {
           <SectionLabel text="Due Today" />
           <div className="space-y-2">
             {bank.dueToday.map((entry) => (
-              <BankCard
-                key={entry.problem.id}
-                entry={entry}
-                variant="due-today"
+              <BankCard key={entry.problem.id} entry={entry} variant="due-today"
                 onOpen={() => openModal(entry.problem.id)}
-                onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })}
-              />
+                onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })} />
             ))}
           </div>
         </section>
       )}
 
-      {/* Upcoming */}
-      {upcomingDays.some(([, v]) => v.length > 0) && (
-        <section>
-          <SectionLabel text="Next 7 Days" />
-          <div className="flex gap-2 flex-wrap">
-            {upcomingDays.map(([date, entries]) => {
-              const d = new Date(date + "T00:00:00");
-              return (
-                <div
-                  key={date}
-                  className="flex flex-col items-center bg-[#EDEAE3] dark:bg-[#1A2230] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg px-3 py-2 min-w-[56px]"
-                >
-                  <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7F8E]">
-                    {d.toLocaleDateString("en", { weekday: "short" })}
-                  </span>
-                  <span className="text-lg font-bold text-[#1C2B3A] dark:text-[#E8EDF2] leading-tight">{entries.length}</span>
-                  <span className="text-[10px] text-[#6B7F8E]">
-                    {d.toLocaleDateString("en", { month: "short", day: "numeric" })}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </section>
-      )}
+      {/* Upcoming windows */}
+      <UpcomingSection label="Next 7 Days"  days={next7} />
+      <UpcomingSection label="Next 15 Days" days={next15} />
+      <UpcomingSection label="Next 30 Days" days={next30} />
 
       <ProblemModal
         problem={fullProblem as never}
@@ -212,6 +182,41 @@ export default function BankPage() {
   );
 }
 
+function UpcomingSection({ label, days }: { label: string; days: [string, BankEntry[]][] }) {
+  if (days.length === 0) return null;
+  return (
+    <section>
+      <SectionLabel text={label} />
+      <div className="grid grid-cols-4 gap-2 sm:grid-cols-7">
+        {days.map(([date, entries]) => {
+          const d = new Date(date + "T00:00:00");
+          const hasItems = entries.length > 0;
+          return (
+            <div
+              key={date}
+              className={`flex flex-col items-center justify-center rounded-xl border py-4 gap-1 ${
+                hasItems
+                  ? "bg-[#D6E8F5] dark:bg-[#1E3A52] border-[#3D7EAA]/30 dark:border-[#3D7EAA]/40"
+                  : "bg-[#EDEAE3] dark:bg-[#1A2230] border-[#D4CFC6] dark:border-[#2A3A4A]"
+              }`}
+            >
+              <span className="text-[10px] font-semibold uppercase tracking-wide text-[#6B7F8E]">
+                {d.toLocaleDateString("en", { weekday: "short" })}
+              </span>
+              <span className={`text-2xl font-bold leading-none ${hasItems ? "text-[#3D7EAA] dark:text-[#5B9EC9]" : "text-[#1C2B3A] dark:text-[#E8EDF2]"}`}>
+                {entries.length}
+              </span>
+              <span className="text-[10px] text-[#6B7F8E]">
+                {d.toLocaleDateString("en", { month: "short", day: "numeric" })}
+              </span>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function StatPill({ label, count, variant }: { label: string; count: number; variant: "red" | "amber" | "blue" }) {
   const styles = {
     red:   "bg-[#F5DADA] text-[#B54A4A] dark:bg-[#3D1A1A] dark:text-[#D46A6A]",
@@ -228,7 +233,7 @@ function StatPill({ label, count, variant }: { label: string; count: number; var
 
 function SectionLabel({ text }: { text: string }) {
   return (
-    <h2 className="text-[11px] font-semibold uppercase tracking-widest text-[#6B7F8E] mb-2.5">{text}</h2>
+    <h2 className="text-[11px] font-semibold uppercase tracking-widest text-[#6B7F8E] mb-2.5 text-center">{text}</h2>
   );
 }
 
@@ -246,7 +251,6 @@ function BankCard({ entry, variant, onOpen, onReview }: {
       className="flex items-center gap-3 bg-[#EDEAE3] dark:bg-[#1A2230] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg overflow-hidden"
       style={{ borderLeft: `3px solid ${accentColor}` }}
     >
-      {/* Main info */}
       <div className="flex-1 min-w-0 py-3 pl-3">
         <button
           className="text-sm font-medium text-[#1C2B3A] dark:text-[#E8EDF2] hover:text-[#3D7EAA] dark:hover:text-[#5B9EC9] text-left transition-colors truncate block max-w-full"
@@ -264,8 +268,6 @@ function BankCard({ entry, variant, onOpen, onReview }: {
           ))}
         </div>
       </div>
-
-      {/* Review button */}
       <div className="pr-3 shrink-0">
         <button
           onClick={onReview}
