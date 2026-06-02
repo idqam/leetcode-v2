@@ -20,12 +20,21 @@ export default function LoginPage() {
       email: email.trim(),
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
+        shouldCreateUser: false,
       },
     });
 
     if (error) {
       setStatus("error");
-      setErrorMsg(error.message);
+      // shouldCreateUser:false → Supabase rejects unknown emails. Surface a
+      // clear message instead of the raw "Signups not allowed for otp" text.
+      const isUnknownUser =
+        error.status === 422 || /signups not allowed|not found/i.test(error.message);
+      setErrorMsg(
+        isUnknownUser
+          ? "No account found for that email. Sign up to get started."
+          : error.message
+      );
     } else {
       setStatus("sent");
     }
@@ -39,6 +48,12 @@ export default function LoginPage() {
           className="font-bold text-[15px] tracking-tight text-[#1C2B3A] dark:text-[#E8EDF2]"
         >
           LeetCode Tracker<span className="text-[#4A8C6F]">.</span>
+        </Link>
+        <Link
+          href="/signup"
+          className="text-[13px] text-[#6B7F8E] hover:text-[#1C2B3A] dark:hover:text-[#E8EDF2] transition-colors"
+        >
+          Don&apos;t have an account? Sign up →
         </Link>
       </nav>
 
