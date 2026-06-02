@@ -6,9 +6,10 @@ import { eq, desc } from "drizzle-orm";
 import { today } from "@/lib/types";
 import { addDays } from "@/lib/algo";
 
-export async function GET(_: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const p = await db.query.problems.findFirst({
-    where: eq(problems.id, params.id),
+    where: eq(problems.id, id),
     with: {
       solves: true,
       patternLinks: { with: { pattern: true } },
@@ -19,7 +20,7 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   const reviewHistory = await db
     .select()
     .from(reviews)
-    .where(eq(reviews.problemId, params.id))
+    .where(eq(reviews.problemId, id))
     .orderBy(desc(reviews.id));
 
   const solve = p.solves[0] ?? null;
@@ -47,18 +48,20 @@ export async function GET(_: NextRequest, { params }: { params: { id: string } }
   });
 }
 
-export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const body = await req.json();
   const allowed = ["solution", "explanation"] as const;
   const update: Partial<Record<(typeof allowed)[number], string>> = {};
   for (const key of allowed) {
     if (key in body) update[key] = String(body[key]);
   }
-  await db.update(problems).set(update).where(eq(problems.id, params.id));
+  await db.update(problems).set(update).where(eq(problems.id, id));
   return NextResponse.json({ ok: true });
 }
 
-export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
-  await db.delete(problems).where(eq(problems.id, params.id));
+export async function DELETE(_: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  await db.delete(problems).where(eq(problems.id, id));
   return NextResponse.json({ ok: true });
 }
