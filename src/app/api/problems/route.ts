@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { problems, solves, reviews } from "@/db/schema";
-import { eq, desc } from "drizzle-orm";
+import { problems } from "@/db/schema";
+import { eq } from "drizzle-orm";
 import { today } from "@/lib/types";
 import { addDays } from "@/lib/algo";
 

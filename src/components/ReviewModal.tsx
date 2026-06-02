@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { type Quality, QUALITY_LABELS } from "@/lib/algo";
+import { type Quality } from "@/lib/algo";
 
 interface Props {
   open: boolean;
