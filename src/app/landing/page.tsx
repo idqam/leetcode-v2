@@ -37,19 +37,13 @@ export default function LandingPage() {
           so the patterns actually stick.
         </p>
 
-        <div className="flex gap-3 justify-center mb-20">
+        <div className="flex justify-center mb-20">
           <Link
-            href="/login"
+            href="/signup"
             className="bg-[#3D7EAA] hover:bg-[#2E6A94] text-white px-6 py-3 rounded-[10px] text-sm font-medium transition-colors"
           >
             Get started →
           </Link>
-          <a
-            href="#how-it-works"
-            className="text-[#6B7F8E] hover:text-[#1C2B3A] dark:hover:text-[#E8EDF2] px-6 py-3 border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-[10px] text-sm transition-colors"
-          >
-            How it works
-          </a>
         </div>
       </section>
 

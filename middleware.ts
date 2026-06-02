@@ -30,7 +30,7 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const { pathname } = request.nextUrl;
-  const isAuthPage = pathname === "/login" || pathname === "/landing";
+  const isAuthPage = pathname === "/login" || pathname === "/signup" || pathname === "/landing";
 
   if (!user && !isAuthPage) {
     return NextResponse.redirect(new URL("/landing", request.url));

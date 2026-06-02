@@ -11,7 +11,7 @@ const NAV_LINKS = [
   { href: "/dashboard", label: "Dashboard" },
 ];
 
-const HIDE_NAV_ON = ["/landing", "/login"];
+const HIDE_NAV_ON = ["/landing", "/login", "/signup"];
 
 export function NavBar() {
   const pathname = usePathname();
