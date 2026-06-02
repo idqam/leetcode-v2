@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 
 interface ReviewDay { date: string; count: number }
 interface DifficultyDay { date: string; difficulty: string; count: number }
@@ -160,30 +161,32 @@ export function BentoHeatmap({ reviewsPerDay, byDifficulty }: Props) {
     return Array.from(years).sort((a, b) => b - a);
   }, [reviewsPerDay, byDifficulty, currentYear]);
 
-  const [selectedYear, setSelectedYear] = useState<number>(
-    () => (availableYears.includes(currentYear) ? currentYear : availableYears[0] ?? currentYear)
+  const [selectedYear, setSelectedYear] = useLocalStorage<number>(
+    "dashboard.year",
+    availableYears.includes(currentYear) ? currentYear : availableYears[0] ?? currentYear
   );
 
   return (
     <div>
-      <div className="text-center mb-4">
-        <h2 className="font-semibold text-[#1C2B3A] dark:text-[#E8EDF2] mb-3">Review Activity</h2>
-        <div className="inline-flex gap-1.5 bg-[#EDEAE3] dark:bg-[#1A2230] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg p-1">
-          {availableYears.map((year) => (
-            <button
-              key={year}
-              onClick={() => setSelectedYear(year)}
-              className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
-                selectedYear === year
-                  ? "bg-[#3D7EAA] text-white"
-                  : "text-[#6B7F8E] hover:text-[#1C2B3A] dark:hover:text-[#E8EDF2]"
-              }`}
-            >
-              {year}
-            </button>
-          ))}
+      {availableYears.length > 1 && (
+        <div className="flex justify-end mb-3">
+          <div className="inline-flex gap-1 bg-[#E4E1D9] dark:bg-[#243040] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg p-0.5">
+            {availableYears.map((year) => (
+              <button
+                key={year}
+                onClick={() => setSelectedYear(year)}
+                className={`px-2.5 py-0.5 rounded text-xs font-medium transition-colors ${
+                  selectedYear === year
+                    ? "bg-[#3D7EAA] text-white"
+                    : "text-[#6B7F8E] hover:text-[#1C2B3A] dark:hover:text-[#E8EDF2]"
+                }`}
+              >
+                {year}
+              </button>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
 
       <div className="grid grid-cols-6 gap-3">
         {Array.from({ length: 12 }, (_, month) => (

@@ -5,6 +5,7 @@ import { DifficultyBadge } from "@/components/DifficultyBadge";
 import { CircularProgress } from "@/components/CircularProgress";
 import { ProblemModal } from "@/components/ProblemModal";
 import { ReviewModal } from "@/components/ReviewModal";
+import { useLocalStorage } from "@/lib/useLocalStorage";
 import { type Quality } from "@/lib/algo";
 import { Plus, X } from "lucide-react";
 
@@ -39,10 +40,10 @@ function fmtDate(d: string) {
 export default function TrackerPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [lists, setLists] = useState<string[]>([]);
-  const [list, setList] = useState<string>("");
+  const [list, setList] = useLocalStorage<string>("tracker.list", "");
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterDifficulty, setFilterDifficulty] = useState("All");
-  const [showDueOnly, setShowDueOnly] = useState(false);
+  const [filterDifficulty, setFilterDifficulty] = useLocalStorage<string>("tracker.difficulty", "All");
+  const [showDueOnly, setShowDueOnly] = useLocalStorage<boolean>("tracker.dueOnly", false);
   const [modalProblem, setModalProblem] = useState<unknown | null>(null);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; title: string; reviewNumber: number } | null>(null);
   const [showAddForm, setShowAddForm] = useState(false);
@@ -56,7 +57,8 @@ export default function TrackerPage() {
     if (res.ok) {
       const data: string[] = await res.json();
       setLists(data);
-      if (data.length > 0 && !list) setList(data[0]);
+      // If the saved list no longer exists, fall back to the first available.
+      if (data.length > 0 && (!list || !data.includes(list))) setList(data[0]);
     }
   }
 
