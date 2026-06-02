@@ -2,33 +2,50 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 
 export default function SignUpPage() {
+  const router = useRouter();
   const [email, setEmail] = useState("");
-  const [status, setStatus] = useState<"idle" | "sending" | "sent" | "error">("idle");
+  const [password, setPassword] = useState("");
+  const [status, setStatus] = useState<"idle" | "submitting" | "confirm">("idle");
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    if (!email.trim()) return;
-    setStatus("sending");
+    if (!email.trim() || !password) return;
+    if (password.length < 6) {
+      setErrorMsg("Password must be at least 6 characters.");
+      return;
+    }
+    setStatus("submitting");
     setErrorMsg(null);
 
     const supabase = createClient();
-    const { error } = await supabase.auth.signInWithOtp({
+    const { data, error } = await supabase.auth.signUp({
       email: email.trim(),
+      password,
       options: {
         emailRedirectTo: `${window.location.origin}/auth/callback`,
       },
     });
 
     if (error) {
-      setStatus("error");
+      setStatus("idle");
       setErrorMsg(error.message);
-    } else {
-      setStatus("sent");
+      return;
     }
+
+    // If email confirmation is disabled, Supabase returns a session immediately.
+    if (data.session) {
+      router.push("/");
+      router.refresh();
+      return;
+    }
+
+    // Otherwise a confirmation email was sent.
+    setStatus("confirm");
   }
 
   return (
@@ -57,16 +74,17 @@ export default function SignUpPage() {
             Get started.
           </h1>
           <p className="text-center text-[14px] text-[#6B7F8E] mb-10">
-            Enter your email and we&apos;ll send a magic link — no password needed.
+            Create an account with your email and a password.
           </p>
 
-          {status === "sent" ? (
+          {status === "confirm" ? (
             <div className="bg-[#D4EDE3] dark:bg-[#1A3D2E] border border-[#5FAD8A] dark:border-[#4A8C6F] rounded-xl p-5 text-center">
               <div className="text-[#4A8C6F] dark:text-[#9FCFB8] text-[15px] font-medium mb-1">
-                Check your inbox
+                Confirm your email
               </div>
               <p className="text-[13px] text-[#6B7F8E]">
-                We sent a magic link to <strong>{email}</strong>. Click it to get started.
+                We sent a confirmation link to <strong>{email}</strong>. Click it to
+                activate your account, then sign in.
               </p>
             </div>
           ) : (
@@ -80,9 +98,26 @@ export default function SignUpPage() {
                   type="email"
                   required
                   autoFocus
+                  autoComplete="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
+                  className="w-full bg-[#F7F5F0] dark:bg-[#1A2230] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg px-4 py-3 text-[14px] text-[#1C2B3A] dark:text-[#E8EDF2] placeholder-[#6B7F8E] focus:outline-none focus:border-[#3D7EAA] focus:ring-2 focus:ring-[#3D7EAA]/20 transition-colors"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="password" className="block text-[11px] uppercase tracking-wider font-semibold text-[#6B7F8E] mb-2">
+                  Password
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  required
+                  autoComplete="new-password"
+                  placeholder="At least 6 characters"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
                   className="w-full bg-[#F7F5F0] dark:bg-[#1A2230] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded-lg px-4 py-3 text-[14px] text-[#1C2B3A] dark:text-[#E8EDF2] placeholder-[#6B7F8E] focus:outline-none focus:border-[#3D7EAA] focus:ring-2 focus:ring-[#3D7EAA]/20 transition-colors"
                 />
               </div>
@@ -95,10 +130,10 @@ export default function SignUpPage() {
 
               <button
                 type="submit"
-                disabled={status === "sending"}
+                disabled={status === "submitting"}
                 className="w-full bg-[#3D7EAA] hover:bg-[#2E6A94] disabled:opacity-50 disabled:cursor-not-allowed text-white py-3 rounded-lg text-[14px] font-medium transition-colors"
               >
-                {status === "sending" ? "Sending…" : "Send magic link"}
+                {status === "submitting" ? "Creating account…" : "Create account"}
               </button>
             </form>
           )}
