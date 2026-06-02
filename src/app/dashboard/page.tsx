@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from "recharts";
 import { CircularProgress } from "@/components/CircularProgress";
+import { BentoHeatmap } from "@/components/BentoHeatmap";
 
 interface DashboardData {
   solvesPerWeek: { week: string; count: number }[];
@@ -11,13 +12,6 @@ interface DashboardData {
   listProgress: { list_name: string; difficulty: string; total: number; solved: number }[];
 }
 
-function heatColour(count: number): string {
-  if (count === 0) return "bg-[#E4E1D9] dark:bg-[#243040]";
-  if (count === 1) return "bg-[#9FCFB8] dark:bg-[#2E6B52]";
-  if (count === 2) return "bg-[#5FAD8A] dark:bg-[#4A8C6F]";
-  if (count === 3) return "bg-[#4A8C6F] dark:bg-[#5FAD8A]";
-  return "bg-[#2E6B52] dark:bg-[#9FCFB8]";
-}
 
 function buildCumulative(rows: { date: string; difficulty: string; count: number }[]) {
   const byDate = new Map<string, Record<string, number>>();
@@ -44,14 +38,6 @@ export default function DashboardPage() {
   if (!data) return (
     <div className="flex items-center justify-center h-64 text-[#6B7F8E]">Loading…</div>
   );
-
-  const reviewMap = new Map(data.reviewsPerDay.map((r) => [r.date, r.count]));
-  const today = new Date();
-  const heatmapDays = Array.from({ length: 180 }, (_, i) => {
-    const d = new Date(today.getTime() - (179 - i) * 86400000);
-    const key = d.toISOString().split("T")[0];
-    return { date: key, count: reviewMap.get(key) ?? 0 };
-  });
 
   const listNames = Array.from(new Set(data.listProgress.map((r) => r.list_name)));
   const listStats = listNames.map((name) => {
@@ -137,19 +123,8 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Heatmap */}
-          <div>
-            <h2 className="font-semibold mb-3 text-[#1C2B3A] dark:text-[#E8EDF2]">Review Activity (last 6 months)</h2>
-            <div className="flex flex-wrap gap-0.5">
-              {heatmapDays.map((d) => (
-                <div key={d.date} title={`${d.date}: ${d.count} reviews`}
-                  className={`w-3 h-3 rounded-sm ${heatColour(d.count)}`} />
-              ))}
-            </div>
-            <div className="flex items-center gap-1 mt-2 text-xs text-[#6B7F8E]">
-              Less {[0,1,2,3,4].map((n) => <span key={n} className={`inline-block w-3 h-3 rounded-sm ${heatColour(n)}`} />)} More
-            </div>
-          </div>
+          {/* Bento heatmap */}
+          <BentoHeatmap reviewsPerDay={data.reviewsPerDay} byDifficulty={data.byDifficulty} />
         </>
       )}
     </div>

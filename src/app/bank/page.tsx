@@ -40,6 +40,7 @@ export default function TrackerPage() {
   const [problems, setProblems] = useState<Problem[]>([]);
   const [lists, setLists] = useState<string[]>([]);
   const [list, setList] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useState("All");
   const [showDueOnly, setShowDueOnly] = useState(false);
   const [modalProblem, setModalProblem] = useState<unknown | null>(null);
@@ -70,13 +71,14 @@ export default function TrackerPage() {
   useEffect(() => { if (list) load(list); }, [list]);
 
   const filtered = useMemo(() => problems.filter((p) => {
+    if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
     if (filterDifficulty !== "All" && p.difficulty !== filterDifficulty) return false;
     if (showDueOnly) {
       if (!p.solved) return false;
       return p.reviewStatus === "overdue" || p.reviewStatus === "due-today";
     }
     return true;
-  }), [problems, filterDifficulty, showDueOnly]);
+  }), [problems, filterDifficulty, showDueOnly, searchQuery]);
 
   const stats = {
     total: problems.length,
@@ -239,8 +241,15 @@ export default function TrackerPage() {
       {/* Filters */}
       {problems.length > 0 && (
         <div className="flex flex-wrap gap-3 items-center">
+          <input
+            type="text"
+            placeholder="Search problems…"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="flex-1 min-w-[180px] border border-[#D4CFC6] dark:border-[#2A3A4A] rounded px-3 py-1.5 text-sm bg-[#F7F5F0] dark:bg-[#243040] text-[#1C2B3A] dark:text-[#E8EDF2] placeholder-[#6B7F8E]"
+          />
           <select value={filterDifficulty} onChange={(e) => setFilterDifficulty(e.target.value)}
-            className="border border-[#D4CFC6] dark:border-[#2A3A4A] rounded px-2 py-1 text-sm bg-[#F7F5F0] dark:bg-[#243040] text-[#1C2B3A] dark:text-[#E8EDF2]">
+            className="border border-[#D4CFC6] dark:border-[#2A3A4A] rounded px-2 py-1.5 text-sm bg-[#F7F5F0] dark:bg-[#243040] text-[#1C2B3A] dark:text-[#E8EDF2]">
             {["All", "Easy", "Medium", "Hard"].map((d) => <option key={d}>{d}</option>)}
           </select>
           <label className="flex items-center gap-2 text-sm cursor-pointer text-[#6B7F8E]">
