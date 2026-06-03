@@ -26,7 +26,6 @@ export function useCachedFetch<T>(
 
   const fetchData = async () => {
     try {
-      setIsLoading(true);
       setError(null);
 
       const now = Date.now();
@@ -34,12 +33,18 @@ export function useCachedFetch<T>(
 
       // Use cache if it exists and is fresh
       if (cached && now - cached.timestamp < cacheDuration) {
-        setData(cached.data);
-        setIsLoading(false);
+        if (isMountedRef.current) {
+          setData(cached.data);
+          setIsLoading(false);
+        }
         return;
       }
 
       // Fetch fresh data
+      if (isMountedRef.current) {
+        setIsLoading(true);
+      }
+
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`API error: ${response.statusText}`);
@@ -53,14 +58,12 @@ export function useCachedFetch<T>(
       if (isMountedRef.current) {
         setData(newData);
         setError(null);
+        setIsLoading(false);
       }
     } catch (err) {
       const error = err instanceof Error ? err : new Error(String(err));
       if (isMountedRef.current) {
         setError(error);
-      }
-    } finally {
-      if (isMountedRef.current) {
         setIsLoading(false);
       }
     }
@@ -69,7 +72,19 @@ export function useCachedFetch<T>(
   useEffect(() => {
     isMountedRef.current = true;
     if (!options?.skip) {
-      fetchData();
+      // Check cache synchronously first
+      const now = Date.now();
+      const cached = fetchCache.get(url) as CacheEntry<T> | undefined;
+
+      if (cached && now - cached.timestamp < cacheDuration) {
+        // Use cached data immediately without loading state
+        setData(cached.data);
+        setIsLoading(false);
+        setError(null);
+      } else {
+        // No cache or stale, fetch fresh
+        fetchData();
+      }
     }
     return () => {
       isMountedRef.current = false;
