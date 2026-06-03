@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
 import { CircularProgress } from "@/components/CircularProgress";
 import { ProblemModal } from "@/components/ProblemModal";
 import { ReviewModal } from "@/components/ReviewModal";
 import { useLocalStorage } from "@/lib/useLocalStorage";
+import { useCachedFetch } from "@/lib/useCachedFetch";
 import { type Quality } from "@/lib/algo";
 import { Plus, X } from "lucide-react";
 
@@ -38,8 +39,6 @@ function fmtDate(d: string) {
 }
 
 export default function TrackerPage() {
-  const [problems, setProblems] = useState<Problem[]>([]);
-  const [lists, setLists] = useState<string[]>([]);
   const [list, setList] = useLocalStorage<string>("tracker.list", "");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterDifficulty, setFilterDifficulty] = useLocalStorage<string>("tracker.difficulty", "All");
@@ -51,26 +50,30 @@ export default function TrackerPage() {
     title: "", difficulty: "Medium", url: "", topics: "", section: "", listName: "",
   });
   const [addingProblem, setAddingProblem] = useState(false);
+  const [cacheBuster, setCacheBuster] = useState(0);
 
-  async function loadLists() {
-    const res = await fetch("/api/problems/lists");
-    if (res.ok) {
-      const data: string[] = await res.json();
-      setLists(data);
-      // If the saved list no longer exists, fall back to the first available.
-      if (data.length > 0 && (!list || !data.includes(list))) setList(data[0]);
+  // Fetch lists with caching
+  const { data: lists = [], refetch: refetchLists } = useCachedFetch<string[]>(
+    `/api/problems/lists?v=${cacheBuster}`
+  );
+
+  // Fetch problems for current list with caching
+  const { data: problems = [], refetch: refetchProblems } = useCachedFetch<Problem[]>(
+    list ? `/api/problems?list=${encodeURIComponent(list)}&v=${cacheBuster}` : "",
+    { skip: !list }
+  );
+
+  // Initialize list if needed
+  useEffect(() => {
+    if (lists.length > 0 && (!list || !lists.includes(list))) {
+      setList(lists[0]);
     }
-  }
+  }, [lists, list, setList]);
 
-  async function load(targetList?: string) {
-    const l = targetList ?? list;
-    if (!l) return;
-    const res = await fetch(`/api/problems?list=${encodeURIComponent(l)}`);
-    setProblems(await res.json());
-  }
-
-  useEffect(() => { loadLists(); }, []);
-  useEffect(() => { if (list) load(list); }, [list]);
+  // Invalidate cache after mutations
+  const invalidateCache = useCallback(() => {
+    setCacheBuster((prev) => prev + 1);
+  }, []);
 
   const filtered = useMemo(() => problems.filter((p) => {
     if (searchQuery && !p.title.toLowerCase().includes(searchQuery.toLowerCase())) return false;
@@ -96,7 +99,7 @@ export default function TrackerPage() {
     } else {
       await fetch("/api/solves", { method: "POST", body: JSON.stringify({ problemId: id }), headers: { "Content-Type": "application/json" } });
     }
-    await load();
+    invalidateCache();
   }
 
   async function completeReview(problemId: string, quality: Quality, timeTaken: number | null) {
@@ -105,7 +108,7 @@ export default function TrackerPage() {
       body: JSON.stringify({ problemId, quality, timeTaken }),
       headers: { "Content-Type": "application/json" },
     });
-    await load();
+    invalidateCache();
     if (modalProblem && (modalProblem as { id: string }).id === problemId) {
       const res = await fetch(`/api/problems/${problemId}`);
       setModalProblem(await res.json());
@@ -118,7 +121,7 @@ export default function TrackerPage() {
       body: JSON.stringify({ problemId }),
       headers: { "Content-Type": "application/json" },
     });
-    await load();
+    invalidateCache();
     if (modalProblem && (modalProblem as { id: string }).id === problemId) {
       const res = await fetch(`/api/problems/${problemId}`);
       setModalProblem(await res.json());
@@ -153,7 +156,7 @@ export default function TrackerPage() {
     setNewProblem({ title: "", difficulty: "Medium", url: "", topics: "", section: "", listName: "" });
     setShowAddForm(false);
     setAddingProblem(false);
-    await loadLists();
+    invalidateCache();
     setList(listName);
   }
 

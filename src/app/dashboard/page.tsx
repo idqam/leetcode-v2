@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCachedFetch } from "@/lib/useCachedFetch";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer } from "recharts";
 import { CircularProgress } from "@/components/CircularProgress";
 import { BentoHeatmap } from "@/components/BentoHeatmap";
@@ -36,11 +36,7 @@ const TIP = {
 };
 
 export default function DashboardPage() {
-  const [data, setData] = useState<DashboardData | null>(null);
-
-  useEffect(() => {
-    fetch("/api/dashboard").then((r) => r.json()).then(setData);
-  }, []);
+  const { data } = useCachedFetch<DashboardData>("/api/dashboard");
 
   if (!data) return (
     <div className="flex items-center justify-center h-64 text-[#6B7F8E] text-sm">Loading…</div>
