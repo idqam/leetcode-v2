@@ -8,6 +8,13 @@
       "when": 1778520213710,
       "tag": "0000_free_mojo",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1780448934075,
+      "tag": "0001_cuddly_christian_walker",
+      "breakpoints": true
     }
   ]
 }
