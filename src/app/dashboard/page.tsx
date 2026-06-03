@@ -36,11 +36,16 @@ const TIP = {
 };
 
 export default function DashboardPage() {
-  const { data } = useCachedFetch<DashboardData>("/api/dashboard");
+  const { data: rawData } = useCachedFetch<DashboardData>("/api/dashboard", {
+    defaultValue: {
+      solvesPerWeek: [],
+      byDifficulty: [],
+      reviewsPerDay: [],
+      listProgress: [],
+    },
+  });
 
-  if (!data) return (
-    <div className="flex items-center justify-center h-64 text-[#6B7F8E] text-sm">Loading…</div>
-  );
+  const data = rawData!; // data is never null due to defaultValue
 
   const listNames = Array.from(new Set(data.listProgress.map((r) => r.list_name)));
   const listStats = listNames.map((name) => {

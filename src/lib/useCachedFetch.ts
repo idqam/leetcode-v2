@@ -15,6 +15,7 @@ export function useCachedFetch<T>(
   options?: {
     cacheDuration?: number;
     skip?: boolean;
+    defaultValue?: T;
   }
 ): { data: T | null; isLoading: boolean; error: Error | null; refetch: () => Promise<void> } {
   // Check if we have cached data immediately
@@ -23,8 +24,10 @@ export function useCachedFetch<T>(
   const hasCachedData =
     cached && now - cached.timestamp < (options?.cacheDuration ?? CACHE_DURATION);
 
-  const [data, setData] = useState<T | null>(hasCachedData ? cached!.data : null);
-  const [isLoading, setIsLoading] = useState(!hasCachedData);
+  const defaultValue = options?.defaultValue ?? null;
+
+  const [data, setData] = useState<T | null>(hasCachedData ? cached!.data : defaultValue);
+  const [isLoading, setIsLoading] = useState(!hasCachedData && !defaultValue);
   const [error, setError] = useState<Error | null>(null);
   const isMountedRef = useRef(true);
 

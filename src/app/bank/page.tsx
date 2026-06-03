@@ -54,13 +54,14 @@ export default function TrackerPage() {
 
   // Fetch lists with caching
   const { data: lists = [] } = useCachedFetch<string[]>(
-    `/api/problems/lists?v=${cacheBuster}`
+    `/api/problems/lists?v=${cacheBuster}`,
+    { defaultValue: [] }
   ) as { data: string[] };
 
   // Fetch problems for current list with caching
   const { data: problems = [] } = useCachedFetch<Problem[]>(
     list ? `/api/problems?list=${encodeURIComponent(list)}&v=${cacheBuster}` : "",
-    { skip: !list }
+    { skip: !list, defaultValue: [] }
   ) as { data: Problem[] };
 
   // Initialize list if needed
