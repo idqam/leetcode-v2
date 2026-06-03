@@ -17,8 +17,14 @@ export function useCachedFetch<T>(
     skip?: boolean;
   }
 ): { data: T | null; isLoading: boolean; error: Error | null; refetch: () => Promise<void> } {
-  const [data, setData] = useState<T | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  // Check if we have cached data immediately
+  const now = Date.now();
+  const cached = fetchCache.get(url) as CacheEntry<T> | undefined;
+  const hasCachedData =
+    cached && now - cached.timestamp < (options?.cacheDuration ?? CACHE_DURATION);
+
+  const [data, setData] = useState<T | null>(hasCachedData ? cached!.data : null);
+  const [isLoading, setIsLoading] = useState(!hasCachedData);
   const [error, setError] = useState<Error | null>(null);
   const isMountedRef = useRef(true);
 
