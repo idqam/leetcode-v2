@@ -98,11 +98,13 @@ export default function BankPage() {
     );
   }
 
-  const allClear = bank.overdue.length === 0 && bank.dueToday.length === 0;
+  const data = bank!; // bank is never null due to defaultValue
 
-  const next7  = sliceUpcoming(bank.upcoming, 1, 7);
-  const next15 = sliceUpcoming(bank.upcoming, 8, 15);
-  const next30 = sliceUpcoming(bank.upcoming, 16, 30);
+  const allClear = data.overdue.length === 0 && data.dueToday.length === 0;
+
+  const next7  = sliceUpcoming(data.upcoming, 1, 7);
+  const next15 = sliceUpcoming(data.upcoming, 8, 15);
+  const next30 = sliceUpcoming(data.upcoming, 16, 30);
 
   return (
     <div className="max-w-2xl mx-auto px-6 py-8 space-y-8">
@@ -115,11 +117,11 @@ export default function BankPage() {
         )}
         {!allClear && (
           <div className="flex justify-center gap-3 mt-3">
-            {bank.overdue.length > 0 && (
-              <StatPill label="Overdue" count={bank.overdue.length} variant="red" />
+            {data.overdue.length > 0 && (
+              <StatPill label="Overdue" count={data.overdue.length} variant="red" />
             )}
-            {bank.dueToday.length > 0 && (
-              <StatPill label="Due Today" count={bank.dueToday.length} variant="amber" />
+            {data.dueToday.length > 0 && (
+              <StatPill label="Due Today" count={data.dueToday.length} variant="amber" />
             )}
           </div>
         )}
@@ -135,11 +137,11 @@ export default function BankPage() {
       )}
 
       {/* Overdue */}
-      {bank.overdue.length > 0 && (
+      {data.overdue.length > 0 && (
         <section>
           <SectionLabel text="Overdue" />
           <div className="space-y-2">
-            {bank.overdue.map((entry) => (
+            {data.overdue.map((entry) => (
               <BankCard key={entry.problem.id} entry={entry} variant="overdue"
                 onOpen={() => openModal(entry.problem.id)}
                 onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })} />
@@ -149,11 +151,11 @@ export default function BankPage() {
       )}
 
       {/* Due today */}
-      {bank.dueToday.length > 0 && (
+      {data.dueToday.length > 0 && (
         <section>
           <SectionLabel text="Due Today" />
           <div className="space-y-2">
-            {bank.dueToday.map((entry) => (
+            {data.dueToday.map((entry) => (
               <BankCard key={entry.problem.id} entry={entry} variant="due-today"
                 onOpen={() => openModal(entry.problem.id)}
                 onReview={() => setReviewTarget({ id: entry.problem.id, title: entry.problem.title, reviewNumber: entry.reviewNumber })} />
