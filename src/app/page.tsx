@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { DifficultyBadge } from "@/components/DifficultyBadge";
 import { ProblemModal } from "@/components/ProblemModal";
 import { ReviewModal } from "@/components/ReviewModal";
 import { type Quality } from "@/lib/algo";
+import { useCachedFetch } from "@/lib/useCachedFetch";
 
 interface BankEntry {
   problem: {
@@ -28,17 +29,25 @@ function sliceUpcoming(upcoming: Record<string, BankEntry[]>, fromDay: number, t
 }
 
 export default function BankPage() {
-  const [bank, setBank] = useState<BankData | null>(null);
   const [fullProblem, setFullProblem] = useState<null | unknown>(null);
   const [reviewTarget, setReviewTarget] = useState<{ id: string; title: string; reviewNumber: number } | null>(null);
   const [completedToday, setCompletedToday] = useState(0);
+  const [cacheBuster, setCacheBuster] = useState(0);
 
-  async function load() {
-    const res = await fetch("/api/bank");
-    setBank(await res.json());
-  }
+  const { data: bank, isLoading } = useCachedFetch<BankData>(
+    `/api/bank?v=${cacheBuster}`,
+    {
+      defaultValue: {
+        overdue: [],
+        dueToday: [],
+        upcoming: {},
+      },
+    }
+  );
 
-  useEffect(() => { load(); }, []);
+  const invalidateCache = useCallback(() => {
+    setCacheBuster((prev) => prev + 1);
+  }, []);
 
   async function openModal(id: string) {
     const res = await fetch(`/api/problems/${id}`);
@@ -52,7 +61,7 @@ export default function BankPage() {
       headers: { "Content-Type": "application/json" },
     });
     setCompletedToday((n) => n + 1);
-    await load();
+    invalidateCache();
     if (fullProblem && (fullProblem as { id: string }).id === problemId) {
       await openModal(problemId);
     }
@@ -64,7 +73,7 @@ export default function BankPage() {
       body: JSON.stringify({ problemId }),
       headers: { "Content-Type": "application/json" },
     });
-    await load();
+    invalidateCache();
     if (fullProblem && (fullProblem as { id: string }).id === problemId) {
       await openModal(problemId);
     }
@@ -76,16 +85,18 @@ export default function BankPage() {
     } else {
       await fetch("/api/solves", { method: "POST", body: JSON.stringify({ problemId: id }), headers: { "Content-Type": "application/json" } });
     }
-    await load();
+    invalidateCache();
   }
 
   async function saveProblemField(id: string, field: "solution" | "explanation", value: string) {
     await fetch(`/api/problems/${id}`, { method: "PATCH", body: JSON.stringify({ [field]: value }), headers: { "Content-Type": "application/json" } });
   }
 
-  if (!bank) return (
-    <div className="flex items-center justify-center h-64 text-[#6B7F8E] text-sm">Loading…</div>
-  );
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center h-64 text-[#6B7F8E] text-sm">Loading…</div>
+    );
+  }
 
   const allClear = bank.overdue.length === 0 && bank.dueToday.length === 0;
 
